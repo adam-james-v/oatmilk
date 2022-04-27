@@ -1,6 +1,8 @@
 # Oatmilk
 Clerk Notebooks for fun.
 
+I'll try to keep [this](https://adam-james-v.github.io/oatmilk/index.html#/) up to date with these notes as much as possible.
+
 Why *Oatmilk*?
 
 Names are tough, and I drink lots of coffee with oat milk. 🤷‍♂️ ☕️
@@ -31,3 +33,15 @@ And then I just shell out to this every time I save an org file in Emacs. This i
 
 (add-hook 'after-save-hook 'export-md-on-save-org-mode-file)
 ```
+
+
+## Building the Static Site Index.html
+This seems like a cool Clerk Feature, though I'm not certain it'll stick around.
+
+In the REPL:
+
+```clojure
+(clerk/build-static-app! {:paths ["notebooks/*.md"]})
+```
+
+Will build all of the .md files. It gets put into a single index.html at `./public/build/index.html`.

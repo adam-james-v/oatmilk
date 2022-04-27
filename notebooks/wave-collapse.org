@@ -54,7 +54,11 @@ I'd love to have variable dimension cells and modules, but that's beyond the sco
 (def base-tile
   (-> (el/rect tile-size tile-size)
       (tf/style {:fill "none"})))
+#+end_src
 
+The first useful tile I'll create is a corner. I want to have a ~1~ socket at the east and south edges, so I'll make sure my polyline(s) start and end at the middle points of those edges.
+
+#+begin_src clojure
 (defn corner
   []
   (let [shape (rand-nth [(el/polyline [[(* tile-size 0.5) (* tile-size 1.0)]
@@ -70,7 +74,17 @@ I'd love to have variable dimension cells and modules, but that's beyond the sco
       (-> shape
           (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
           tile-style))))
+#+end_src
 
+Here I bind ~shape~ to be a randomly chosen SVG element. For the corner, I'll make a squared corner, a diagonal, and a bezier path. Each of these shapes shows up in the list once, so there's a 1 in 3 chance that any corner tile is a bezier corner. If I wanted to change the probabilities, I could code in some notion of weights (probably good for extensibility), or I can acheive the same result by duplicating specific shapes in the list.
+
+The duplication approach will work acceptably, I think, for small amounts of duplication. But if you really wanted drastically different weights between 2 choices, you would have to create really long lists, and I don't think that's really the best way to go if you want to scale things up.
+
+A proper weights approach is a good exercise for another notebook, I think.
+
+The same ~rand-nth~ shape approach is used for the side and inner tile functions.
+
+#+begin_src clojure
 (defn side
   []
   (let [shape (rand-nth [(el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
@@ -106,161 +120,12 @@ I'd love to have variable dimension cells and modules, but that's beyond the sco
 (clerk/html (svg (render-tiles [corner side inner])))
 #+end_src
 
-*** weird-tiles :no-export:
-#+begin_src clojure
-(defn tile-a
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 1.0)]
-                      [(* tile-size 0.5) (* tile-size 0.5)]
-                      [(* tile-size 1.0) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/circle (/ tile-size 6.0))
-        tile-style)))
-
-(defn tile-b
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
-                      [(* tile-size 0.25) (* tile-size 0.5)]
-                      [(* tile-size 0.5) (* tile-size 0.25)]
-                      [(* tile-size 0.75) (* tile-size 0.5)]
-                      [(* tile-size 1.0) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/rect (/ tile-size 6.0) (/ tile-size 6.0))
-        (tf/rotate 45)
-        tile-style)))
-
-(defn tile-c
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
-                      [(* tile-size 0.25) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.75)]
-                      [(* tile-size 0.5) (* tile-size 1.0)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/circle (/ tile-size 10.0))
-        tile-style)
-    (-> (el/circle (/ tile-size 4.0))
-        tile-style)))
-
-(defn tile-d
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.0)]
-                      [(* tile-size 0.5) (* tile-size 0.25)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.75)]
-                      [(* tile-size 0.5) (* tile-size 1.0)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/rect (/ tile-size 4.0) (/ tile-size 4.0))
-        tile-style)))
-
-(defn tile-e
-  []
-  (el/g
-    base-tile
-    (-> (el/circle (/ tile-size 64.0))
-        tile-style)
-    (-> (el/circle (/ tile-size 32.0))
-        tile-style)))
-
-(defn tile-f
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.0)]
-                      [(* tile-size 0.5) (* tile-size 0.25)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.75)]
-                      [(* tile-size 0.5) (* tile-size 1.0)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polygon (p/regular-polygon-pts (/ tile-size 4.0) 6))
-        (tf/rotate 30)
-        tile-style)))
-
-(defn tile-g
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.0)]
-                      [(* tile-size 0.25) (* tile-size 0.25)]
-                      [(* tile-size 0.75) (* tile-size 0.25)]
-                      [(* tile-size 0.75) (* tile-size 0.75)]
-                      [(* tile-size 1.0) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/rect (/ tile-size 4.0) (/ tile-size 4.0))
-        tile-style)))
-
-(defn tile-h
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.25) (* tile-size 0.375)]
-                      [(* tile-size 0.0) (* tile-size 0.5)]
-                      [(* tile-size 0.25) (* tile-size 0.625)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.75) (* tile-size 0.375)]
-                      [(* tile-size 1.0) (* tile-size 0.5)]
-                      [(* tile-size 0.75) (* tile-size 0.625)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/rect (/ tile-size 2.0) (/ tile-size 4.0))
-        tile-style)))
-
-(defn tile-i
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.0)]
-                      [(* tile-size 0.5) (* tile-size 0.25)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
-                      [(* tile-size 0.25) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/rect (/ tile-size 4.0) (/ tile-size 4.0))
-        tile-style)
-    (-> (el/rect (/ tile-size 2.0) (/ tile-size 2.0))
-        tile-style)))
-
-(defn tile-1
-  []
-  (el/g
-    base-tile
-    (-> (el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
-                      [(* tile-size 1.0) (* tile-size 0.5)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)
-    (-> (el/polyline [[(* tile-size 0.5) (* tile-size 0.0)]
-                      [(* tile-size 0.5) (* tile-size 1.0)]])
-        (tf/translate [(* tile-size -0.5) (* tile-size -0.5)])
-        tile-style)))
-
-(def tiles [tile-a tile-b tile-c
-            tile-d tile-1 tile-f
-            tile-g tile-h tile-i])
-#+end_src
 ** Modules
 Modules are implemented as a map with two keys: ~[:sockets :tile]~, where the sockets are always a vector of 4 sockets indicating the socket type at the north, east, south, and west edge of the module. The tile key holds the function that returns the tile graphic.
 
-WIP -> Keep writing here
+Since I know that my tiles are square, I can create a really simple rotation function to generate additional tiles from my basic tile functions. I can optionally ask for 2 or 4 rotations, where I'll get a set of 0 and 180 degree versions or 0, 90, 180, 270 degree versions respectively.
+
+I have to make sure to change both the tile function and the sockets appropriately. If I rotate 90 degrees counter clockwise, the east facing socket now becomes the north facing socket. And I have to create a new tile function that wraps the original tile function in an appropriate rotation.
 
 #+begin_src clojure
 (defn rotate-module
@@ -277,7 +142,13 @@ WIP -> Keep writing here
         2 [a c]
         4 [a b c d]
         nil))))
+#+end_src
 
+With the rotation function working, I can define a module set.
+
+In all cases, the ~:sockets~ key will hold a vector with 4 integers pointing ~[N E S W]~. These will be used to build up sets of sockets for filtering valid modules later.
+
+#+begin_src clojure
 ;; sockets follow [:north :east :south :west]
 (def basic-module-set
   (concat
@@ -299,6 +170,12 @@ WIP -> Keep writing here
 ** Grid
 The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values for each cell in the grid are the superpositions: lists of possible modules for that cell.
 
+Right away I'll make some helpers. The ~neighbour-keys~ function gives me a vector of gridmap keys in the same ~[N E S W]~ order. This function does not care if you give a corner or edge cell; it will return keys that don't actually exist inside the gridmap. It turns out this is ok, because when we use these keys inside the propagation function, we ignore ~nils~.
+
+The ~initial-grid~ function will create a new gridmap with ~ncols~ and ~nrows~, and populate each cell with a superposition of every module in the ~module-set~. The resulting gridmap is one of maximum entropy, and is ready for an initial collapse and propagation!
+
+But before we can propagate things, we need a way to build up filters for valid sockets.
+
 #+begin_src clojure
 (defn neighbour-keys
   [[col row]]
@@ -311,7 +188,17 @@ The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values
 (defn initial-grid
   [ncols nrows module-set]
   (zipmap (p/rect-grid ncols nrows 1 1) (repeat module-set)))
+#+end_src
 
+Here things may get a bit confusing, at least they did when I first wrote this. ~valid-sockets-for-module~ is a function that runs on a /single/ module. This means that there will be only 1 list of 4 sockets to work with.
+
+We want to know, for the module we passed in, what other lists of sockets are valid for each position. Let's consider just the north direction socket to understand this function. If ~n~ is 1, I want any module whose ~:sockets~ list has 1 in the ~s~ position. So, ~[0 0 1 1]~ is a valid socket list for the North neighbour module to have.
+
+Using this approach, sets are built up for each direction. Then, Since this has to be done for each module in a /superposition/, we have to union all valid socket list sets per direction, for each module, which ~merge-socket-sets~ does.
+
+Finally, these functions are used inside ~valid-sockets-for-neighbours~, which gives exactly the right sets for each direction from the current position.
+
+#+begin_src clojure
 (defn valid-sockets-for-module
   [{:keys [sockets]} module-set]
   (let [[n e s w] sockets
@@ -329,7 +216,15 @@ The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values
 (defn valid-sockets-for-neighbours
   [pos gridmap module-set]
   (merge-socket-sets (map #(valid-sockets-for-module % module-set) (get gridmap pos))))
+#+end_src
 
+I didn't create the perfect system, so I have a check in ~lowest-entropy-pos~ for the failure mode of having a cell with no valid tiles. This shouldn't really happen, but I think it becomes possible when the given modules don't allow for all possible permutations of sockets, causing a propagation to filter away the last remaining module in a cell.
+
+Once again, I have good work to do in another notebook 🙂.
+
+Otherwise, if things are working properly, we can select the lowest entropy position either as the first collapsed cell, any cell if they're all the same entropy, the highest entropy cell if it's the only remaining un-collapsed cell, or pick the lowest possible entropy except for 1. This last case is the one we should see fairly often as things propagate.
+
+#+begin_src clojure
 (defn lowest-entropy-pos
   [gridmap]
   (let [entropies (group-by second (update-vals gridmap count))
@@ -357,6 +252,19 @@ The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values
 #+end_src
 
 ** Collapse
+We're now at the heart of it all: /collapse!/ (How dramatic).
+
+The cycle basically works as follows:
+
+- Collapse a Cell, either the lowest entropy one, or a random one if there's a tie
+- from that cell, propagate the consequences out using ~update-neighbours~
+- for each changed neighbour, propagate the consequences
+- when no more neighbours have changed, you're done one propagation cycle, baby!
+
+This implementation is very much imperative and not functional. It's also probably not super efficient. It's a kind of 'worst of both worlds' situation. This is a definite area I want to improve the code in. If there's a reader with a clear mind and willingness to comment on this, please [[twitter.com/RustyVermeer/][@-me]] on Twitter, or leave an issue or pull request on [[https://github.com/adam-james-v/oatmilk/blob/main/notebooks/wave-collapse.org][Github]].
+
+In the meantime, just know that ~propagate~ works through the above 4 point cycle and generally gets the results I want. Yay 🙌.
+
 #+begin_src clojure
 (defn collapse-one-at
   [pos gridmap]
@@ -410,13 +318,21 @@ The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values
     (let [gridmap (-> gridmap
                       (propagate module-set))]
       (recur gridmap module-set (dec i)))))
+#+end_src
 
+To make things a bit easier to use, I'll make a ~generate~ function that lets you give the number of columns and rows and a module set to generate with.
+
+#+begin_src clojure
 (defn generate
   [ncols nrows module-set]
   (collapse (initial-grid ncols nrows module-set) module-set 10000))
 #+end_src
 
 ** Rendering
+Rendering works well using my ~svg-clj~ library. Since each tile function emits SVG elements as hiccup data, I can render in Clerk no problem! I also have a ~svg-clj.tools/cider-show~ function which generates ~./_tmp.svg~ in the project directory and displays it in your cider REPL buffer. It's pretty useful!
+
+Each cell at render time should have a list containing just one tile function. Take the first item from this list, run the function, and translate it to the appropriate spot. Since the tile-size is known and the cell's position is its key, finding this translation is just a bit of multiplication.
+
 #+begin_src clojure
 (defn render-sockets
   [[n e s w]]
@@ -448,6 +364,7 @@ The grid I'll represent with a map whose keys are ~[col row]~ tuples. The values
             (tf/translate (utils/v* [tile-size tile-size] pos)))))))
 
 (def result (svg (render-gridmap (generate 32 32 basic-module-set))))
+#_(tools/cider-show result)
 (clerk/html result)
 #+end_src
 
@@ -474,3 +391,14 @@ If we reduce the total number of modules that have certain types of sockets, we 
 (def result2 (svg (render-gridmap (generate 32 32 module-set-2))))
 (clerk/html result2)
 #+end_src
+
+There's a lot for me to improve in terms of implementation, which I find exciting. But even if things were perfect, there's so much potential with this approach for creating cool stuff! I'm not going to end this note with a well-written essay style conclusion, I just want to seed some ideas for you (and myself in the future):
+
+- do this with 3D modules!! -> isometric projection and layering of SVG elements could look super cool
+- create an implementation that calculates sockets automatically, so that it's really quick and easy to just create tiles without having to think as much
+- try Clerk's interactivity stuff so I can change tiles in the browser and see results live
+- animate the propagation steps
+- seed the edges of the gridmap with nicer looking end tiles
+- create more organic tiling shapes
+- non-uniform cells
+- non-square cells (hexagons, triangles, blobs??)
