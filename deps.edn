@@ -1,0 +1,5 @@
+{:deps
+ {org.clojure/clojure         {:mvn/version "RELEASE"}
+  io.github.nextjournal/clerk {:mvn/version "RELEASE"}
+  #_#_forge/forge                 {:local/root "/Users/adam/dev/forge"}
+  svg-clj/svg-clj             {:local/root "/Users/adam/dev/svg-clj"}}}
