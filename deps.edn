@@ -1,5 +1,7 @@
 {:deps
  {org.clojure/clojure         {:mvn/version "RELEASE"}
+  org.clojure/math.combinatorics {:mvn/version "0.1.6"}
   io.github.nextjournal/clerk {:mvn/version "RELEASE"}
-  #_#_forge/forge                 {:local/root "/Users/adam/dev/forge"}
+  criterium/criterium {:mvn/version "0.4.6"}
+  forge/forge                 {:local/root "/Users/adam/dev/forge"}
   svg-clj/svg-clj             {:local/root "/Users/adam/dev/svg-clj"}}}

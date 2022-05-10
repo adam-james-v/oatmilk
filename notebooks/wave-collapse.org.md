@@ -80,7 +80,7 @@ As is common with my notes and experiments, I want to use my SVG
 library. I\'ll also be using `clojure.set` to help with filtering
 modules based on their sockets.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (ns oatmilk.wave-collapse
   (:require [clojure.set :as set]
             [clojure.string :as str]
@@ -107,8 +107,8 @@ the styling and size. I\'m going to restrict tiles to being square, too.
 I\'d love to have variable dimension cells and modules, but that\'s
 beyond the scope of this note.
 
-``` clojure
-(def tile-size 16)
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
+(def tile-size 9)
 
 (defn tile-style
   [el]
@@ -126,7 +126,7 @@ The first useful tile I\'ll create is a corner. I want to have a `1`
 socket at the east and south edges, so I\'ll make sure my polyline(s)
 start and end at the middle points of those edges.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn corner
   []
   (let [shape (rand-nth [(el/polyline [[(* tile-size 0.5) (* tile-size 1.0)]
@@ -164,7 +164,7 @@ think.
 The same `rand-nth` shape approach is used for the side and inner tile
 functions.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn side
   []
   (let [shape (rand-nth [(el/polyline [[(* tile-size 0.0) (* tile-size 0.5)]
@@ -196,7 +196,9 @@ functions.
         nx (Math/ceil (/ n-tiles ny))
         grid (p/rect-grid nx ny tile-size tile-size)]
     (lo/distribute-on-pts (map #(%) tiles) grid)))
+```
 
+``` clojure
 (clerk/html (svg (render-tiles [corner side inner])))
 ```
 
@@ -219,7 +221,7 @@ socket now becomes the north facing socket. And I have to create a new
 tile function that wraps the original tile function in an appropriate
 rotation.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn rotate-module
   "Rotates a tile 90 degrees counter clockwise"
   [{:keys [sockets tile]}]
@@ -242,23 +244,20 @@ In all cases, the `:sockets` key will hold a vector with 4 integers
 pointing `[N E S W]`. These will be used to build up sets of sockets for
 filtering valid modules later.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 ;; sockets follow [:north :east :south :west]
 (def basic-module-set
   (concat
-    (mapcat #(module-rotations % 4)
-            [{:sockets [0 1 1 0] :tile corner}
-             {:sockets [0 1 1 2] :tile corner}
-             {:sockets [2 1 1 2] :tile corner}
-             {:sockets [2 1 1 0] :tile corner}
-             {:sockets [0 1 0 1] :tile side}
-             {:sockets [0 1 2 1] :tile side}
-             {:sockets [2 1 2 1] :tile side}
-             {:sockets [2 1 0 1] :tile side}])
-    (repeat 8 {:sockets [2 2 2 2] :tile (fn [] base-tile)})
-    (repeat 1 {:sockets [0 0 0 0] :tile inner})))
+    (module-rotations {:sockets [0 1 1 0] :tile corner} 4)
+    (module-rotations {:sockets [0 1 0 1] :tile side} 4)
+    [{:sockets [0 0 0 0] :tile inner}]))
 
-(clerk/html (svg (render-modules basic-module-set)))
+(def empty-module-set
+  (concat
+    (module-rotations {:sockets [0 1 1 0] :tile []} 4)
+    (module-rotations {:sockets [0 1 0 1] :tile []} 4)
+    [{:sockets [0 0 0 0] :tile []}]))
+
 ```
 
 ## Grid
@@ -282,18 +281,17 @@ is ready for an initial collapse and propagation!
 But before we can propagate things, we need a way to build up filters
 for valid sockets.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn neighbour-keys
   [[col row]]
-  (let [ks [[col (dec row)]
-            [(inc col) row]
-            [col (inc row)]
-            [(dec col) row]]]
-    ks))
+  [[col (dec row)]
+   [(inc col) row]
+   [col (inc row)]
+   [(dec col) row]])
 
 (defn initial-grid
   [ncols nrows module-set]
-  (zipmap (p/rect-grid ncols nrows 1 1) (repeat module-set)))
+  (zipmap (p/rect-grid ncols nrows 1 1) (repeat (vec module-set))))
 ```
 
 Here things may get a bit confusing, at least they did when I first
@@ -316,7 +314,7 @@ Finally, these functions are used inside `valid-sockets-for-neighbours`,
 which gives exactly the right sets for each direction from the current
 position.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn valid-sockets-for-module
   [{:keys [sockets]} module-set]
   (let [[n e s w] sockets
@@ -352,7 +350,7 @@ only remaining un-collapsed cell, or pick the lowest possible entropy
 except for 1. This last case is the one we should see fairly often as
 things propagate.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn lowest-entropy-pos
   [gridmap]
   (let [entropies (group-by second (update-vals gridmap count))
@@ -367,16 +365,15 @@ things propagate.
                   (get entropies he)
 
                   ;; cells either have full entropy or minimum possible entropy
-                  (and (= 2 (count entropies)) (boolean (get entropies 1)))
-                  (get entropies 1)
+                  (and (= 2 (count entropies)) (= 1 (count (get entropies 1))))
+                  (get entropies he)
 
                   ;; some cells have greater than minimum possible entropy, pick those
-                  :else (get entropies (apply min (keys (dissoc entropies 1)))))
+                  :else (get entropies (apply min (keys (dissoc entropies 1 0)))))
         [k _] (rand-nth choices)]
     (if (< le 1)
       (println (str "Entropy Too low -> Propagation Error perhaps? Entropy: " le))
       k)))
-
 ```
 
 ## Collapse
@@ -404,69 +401,61 @@ on Twitter, or leave an issue or pull request on
 In the meantime, just know that `propagate` works through the above 4
 point cycle and generally gets the results I want. Yay 🙌.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn collapse-one-at
   [pos gridmap]
   (update gridmap pos #(vector (rand-nth %))))
 
-(defn collapse-one
-  [gridmap]
-  (collapse-one-at (lowest-entropy-pos gridmap) gridmap))
-
 (defn update-neighbours
   [pos gridmap module-set]
   (let [neighbours (neighbour-keys pos)
-        socket-sets (zipmap neighbours (valid-sockets-for-neighbours pos gridmap  module-set))
+        socket-sets (zipmap neighbours (valid-sockets-for-neighbours pos gridmap module-set))
         new-neighbours (for [k neighbours]
-                         (let [modules (get gridmap k)]
-                           (when modules
-                             (let [valid-modules (filter #((get socket-sets k) (:sockets %)) modules)]
-                               [k (if (> (count valid-modules) 0) valid-modules [(last module-set)])]))))]
-    (merge gridmap (into {} new-neighbours))))
+                         (when-let [modules (get gridmap k)]
+                           (let [valid-modules (filter #((get socket-sets k) (:sockets %)) modules)]
+                             [k valid-modules])))]
+    (into {} new-neighbours)))
 
 (defn propagate
   [gridmap module-set]
-  (let [break (atom 1000)
-        seed (lowest-entropy-pos gridmap)
-        stack (atom [seed])
-        gm (atom (collapse-one-at seed gridmap))]
-    (while (and (> (count @stack) 0) (> @break 0))
-      (let [pos (first @stack)
-            nks (neighbour-keys pos)
-            old-neighbours (into {} (mapv #(vector % (get @gm %)) nks))
-            new-gm (update-neighbours pos @gm module-set)]
-        ;; pop position off the list
-        (swap! stack rest)
-        ;; filter invalid neighbouring tile options
-        (reset! gm new-gm)
-        ;; add adjusted positions to the stack
-        (doseq [k nks]
-          (when (not= (set (get new-gm k)) (set (get old-neighbours k)))
-            (swap! stack conj k)))
-        (swap! break dec)))
-    @gm))
+  (let [seed (lowest-entropy-pos gridmap)]
+    (loop [gm (collapse-one-at seed gridmap)
+           stack [seed]]
+      (if (< (count stack) 1)
+        gm
+        (let [[pos stack] ((juxt peek pop) stack)
+              nks (neighbour-keys pos)
+              old-neighbours (into {} (mapv #(vector % (get gm %)) nks))
+              new-neighbours (update-neighbours pos gm module-set)
+              new-stack (into stack (comp
+                                      (filter #(not= (count (get new-neighbours %))
+                                                     (count (get old-neighbours %))))
+                                      (map conj)) nks)]
+          (recur (merge gm new-neighbours) new-stack))))))
 
 (defn collapsed?
   [gridmap]
-  (= #{1} (set (map count (vals gridmap)))))
+  (let [counts (set (map count (vals gridmap)))]
+    (or (= #{1} counts)
+        (= #{0 1} counts))))
 
 (defn collapse
-  [gridmap module-set i]
-  (if (or (collapsed? gridmap) (< i 1))
+  [gridmap module-set]
+  (if (collapsed? gridmap)
     gridmap
     (let [gridmap (-> gridmap
                       (propagate module-set))]
-      (recur gridmap module-set (dec i)))))
+      (recur (propagate gridmap module-set) module-set))))
 ```
 
 To make things a bit easier to use, I\'ll make a `generate` function
 that lets you give the number of columns and rows and a module set to
 generate with.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn generate
   [ncols nrows module-set]
-  (collapse (initial-grid ncols nrows module-set) module-set 10000))
+  (collapse (initial-grid ncols nrows module-set) module-set))
 ```
 
 ## Rendering
@@ -483,7 +472,7 @@ translate it to the appropriate spot. Since the tile-size is known and
 the cell\'s position is its key, finding this translation is just a bit
 of multiplication.
 
-``` clojure
+``` {.clojure tangle="../src/oatmilk/wave_collapse.clj"}
 (defn render-sockets
   [[n e s w]]
   (let [cols {0 "red"
@@ -506,47 +495,24 @@ of multiplication.
 
 (defn render-gridmap
   [gridmap]
-  (el/g
-    (for [[pos modules] gridmap]
-      (let [{:keys [sockets tile]} (first modules)]
-        (-> (tile)
-            #_(el/g (render-sockets sockets))
-            (tf/translate (utils/v* [tile-size tile-size] pos)))))))
+  (let [rfn (fn [[pos modules]]
+              (let [{:keys [tile]} (first modules)]
+                (-> (tile)
+                    #_(el/g (render-sockets sockets))
+                    (tf/translate (utils/v* [tile-size tile-size] pos)))))]
+    (el/g (pmap rfn gridmap))))
+```
 
-(def result (svg (render-gridmap (generate 32 32 basic-module-set))))
+``` clojure
+(def result (svg (render-gridmap (generate 64 64 basic-module-set))))
 #_(tools/cider-show result)
+```
+
+``` clojure
 (clerk/html result)
 ```
 
-## Adjusting Module Sets
-
-There\'s a lot of tweaking we can do with the module sets to get
-different results from the generator.
-
-If we reduce the total number of modules that have certain types of
-sockets, we can start to see generation that has much bigger zones of
-inner/outer tiles. This is where the power and the artistry really comes
-in, I think. There\'s a lot of design potential in not only the tile
-functions but also in the module sets and sockets.
-
-``` clojure
-(def module-set-2
-  (concat
-    (mapcat #(module-rotations % 4)
-            [{:sockets [0 1 1 0] :tile corner}
-             {:sockets [0 1 1 2] :tile corner}
-             #_{:sockets [2 1 1 2] :tile corner}
-             #_{:sockets [2 1 1 0] :tile corner}
-             {:sockets [0 1 0 1] :tile side}
-             {:sockets [0 1 2 1] :tile side}
-             #_{:sockets [2 1 2 1] :tile side}
-             #_{:sockets [2 1 0 1] :tile side}])
-    (repeat 8 {:sockets [2 2 2 2] :tile (fn [] base-tile)})
-    (repeat 4 {:sockets [0 0 0 0] :tile inner})))
-
-(def result2 (svg (render-gridmap (generate 32 32 module-set-2))))
-(clerk/html result2)
-```
+## Further Explorations
 
 There\'s a lot for me to improve in terms of implementation, which I
 find exciting. But even if things were perfect, there\'s so much

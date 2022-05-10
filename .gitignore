@@ -14,8 +14,10 @@ pom.xml.asc
 .lein-plugins/
 .lein-failures
 .nrepl-port
+.clerk/
 .cpcache/
 .shadow-cljs/
 _tmp.svg
+_tmp.png
 *.txt
 svgcli
